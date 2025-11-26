@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CLAY學步車">
+    <meta name="theme-color" content="#f97316">
+    <meta name="description" content="CLAY學步車 - 陪伴你從匱乏走向豐盛的28天旅程">
+    <title>CLAY學步車 - 從匱乏到豐盛</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    
+    <!-- Favicon (inline SVG) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23f97316'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white'>🍊</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- JSZip for ZIP export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        html, body { 
+            overscroll-behavior: none; 
+            -webkit-font-smoothing: antialiased; 
+            touch-action: pan-y;
+            overflow: hidden;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        /* iOS Safe Area */
+        .pb-safe { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+        
+        /* Splash Screen */
+        #splash-screen {
+            position: fixed; inset: 0; z-index: 9999;
+            background: linear-gradient(135deg, #fff7ed 0%, #f0fdf4 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 1; transform: scale(1);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        #splash-screen.animate-splash-exit { opacity: 0; transform: scale(1.1); }
+        
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed; inset: 0; z-index: 9998;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        
+        /* Animations */
+        @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.95); } }
+        @keyframes celebrate { 0% { transform: scale(0.8) rotate(0deg); opacity: 0; } 50% { transform: scale(1.1) rotate(5deg); } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes modal-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .animate-logo-pulse { animation: breathe 3s ease-in-out infinite; }
+        .animate-loading-pulse { animation: pulse 2s ease-in-out infinite; }
+        .animate-splash-logo { animation: breathe 2s ease-in-out; }
+        .animate-splash-text { animation: fade-in 1s ease-in 0.5s both; }
+        .celebrate { animation: celebrate 0.6s ease-out; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out; }
+        .animate-modal-in { animation: modal-in 0.2s ease-out; }
+        
+        /* Today Active Animation */
+        @keyframes today-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(251, 146, 60, 0); } }
+        .today-active { animation: today-pulse 2s ease-in-out infinite; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+        
+        /* iOS Input Fix */
+        input, textarea, select {
+            font-size: 16px !important;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        /* Kitsu Logo Styling - Original Colors */
+        .kitsu-logo { fill: #000000; }      /* 黑色主體 */
+        .kitsu-logo .st0 { fill: #ea5514; } /* 橘紅色 */
+        .kitsu-logo .st1 { fill: #acacac; } /* 灰色 */
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        // --- 正向語詞庫 ---
+        const MEANINGFUL_WORDS = [
+            '渴望', '想要', '希望', '期待', '嚮往', '追求',
+            '學習', '成長', '進步', '提升', '改變', '發現', '探索', '理解', '領悟', '明白',
+            '創造', '實現', '完成', '達成', '建立', '開始', '嘗試', '持續', '繼續', '努力',
+            '快樂', '幸福', '滿足', '感動', '感謝', '喜歡', '享受', '平靜', '自由', '輕鬆',
+            '陪伴', '分享', '連結', '支持', '幫助', '關心', '傾聽', '接納',
+            '真實', '真誠', '勇氣', '耐心', '信任', '尊重', '溫暖', '豐盛', '完美',
+            '今天', '現在', '當下', '未來', '每天', '一直',
+            '思考', '反思', '沉澱', '洞察', '覺察', '記錄',
+            '看見', '感受', '體會', '相信', '知道', '需要', '選擇', '決定',
+            '生活', '工作', '自己', '時間', '機會', '可能', '重要', '簡單', '清楚'
+        ];
+
+        // --- 關鍵字提取函數 ---
+        const extractKeywords = (textArray, topN = 3) => {
+            const allText = textArray.join('');
+            const wordCount = {};
+            MEANINGFUL_WORDS.forEach(word => {
+                const regex = new RegExp(word, 'g');
+                const matches = allText.match(regex);
+                if (matches) {
+                    wordCount[word] = matches.length;
+                }
+            });
+            return Object.entries(wordCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, topN)
+                .map(entry => entry[0]);
+        };
+
+        const { useState, useEffect, useRef } = React;
+
+        // --- Logo Component (Orange Fatty - Full Version) ---
+        const KitsuLogo = ({ className }) => (
+            <svg className={`kitsu-logo ${className}`} viewBox="0 0 595.28 841.89" xmlns="http://www.w3.org/2000/svg">
+                <path d="M277.2,471.46c-35.84-4.06-73.82-24.05-80.35-62.71-.42-2.51-1.14-15.17-1.64-15.78-.15-.18-3.39-.74-4.48-1.32-9.26-4.94-13.04-19.16-9.2-28.62,2.88-7.1,10.93-11.22,17.86-7.05,5.77-22.52,17.95-44.6,37.46-57.83,4.01-2.72,25.05-14.09,28.74-12.25,1.25.62,1.93,3.28,1.26,4.37-.37.61-7.84,2.54-9.43,3.19-37.27,15.25-54.82,50.27-56.69,89.47-.11,2.32-.03,16.57.72,17.45.21.25,4.82-2.3,4.84,2.39,0,2.89-1.94,2.82-4.15,1.71-1.09,3.15,5.3,22.38,7.15,22.5.67.04,1.61-2.09,3.45-.7,3.33,2.51-.46,4.42-.26,5.75.27,1.82,8.25,10.08,10.12,11.75,12.33,11.03,28.38,17.01,44.36,20.5,3.98.87,22.86,4.52,25.25,3.4,1-.47,1.61-2.4,3.08-2.41,2.03,0,2.8,3.28,3.55,3.45,4.37.99,12.97.86,17.64.7,34.63-1.19,75.95-14.64,83.27-53.29.56-2.98,2.52-19.6,1.57-21.11-.29-.45-2.7-.38-3.21-1.92-1.32-3.98,2.48-3.36,2.68-4.06.56-1.95-.51-8.92-.83-11.44-3.27-25.74-14.68-57.3-35.07-74.21-2.3-1.91-12.39-7.64-12.97-8.92-1.06-2.33,1.2-3.62,3.37-3.4,2.7.27,9.95,5.62,12.33,7.53,11.55,9.25,20.27,23.05,26.41,36.42.66,1.45,2.75,8.02,3.27,8.38.42.3,6.13-1.74,9.96-.44,12.18,4.14,11.13,32.47-.95,38.07,1.95,26.84-.03,52.25-21.26,70.96-22.52,19.85-54.5,23.73-83.27,22.2v19.47c0,.99-2.62,1.26-3.64.93-3.44-1.13-1.15-17.62-1.81-21.09-4.58.21-9.16-.51-13.65-1.36v20.16c0,2.08-5.46,2.08-5.46,0v-20.84ZM404.83,374.44c6.93-4.28,7.19-17.25,3.43-23.6-2.19-3.69-6.25-4.59-8.63-.68l5.2,24.28ZM195.3,387.41l2.75-24.94c-1.88-3.92-7.26-3.19-9.8-.15-5.78,6.91-2.26,22.9,7.05,25.09Z"/>
+                <path className="st0" d="M206.22,537.4c-.41,2.51-4.12,2.29-4.68.59.96-4.19-1.24-23.75.24-26.22.3-.5,1.45-1.11,2.06-1.11,4.11,0,1.95,7.36,1.78,9.73-.06.8-.43,2.19.94,1.63,1.83-.76,8.54-8.53,10.94-10.25s5.19-.67,4.11,1.39c-1.24,2.37-11.95,10.44-11.95,11.26l12.26,10.94c1.14.92,1.06,3.22-.43,3.69-3.96,1.25-11.69-10.35-15.26-12.24-.37,3.26.51,7.48,0,10.59Z"/>
+                <path d="M380.94,509.04v11.62c9.91-5.38,17.48,5.99,12.17,14.57-2.5,4.04-5.37,4.13-9.75,3.84-1.06-.07-2.07-1.1-2.76-1.09-1.27.02-2.59,2.38-4.12-.25l.37-27.65c.49-2.64,2.22-1.46,4.09-1.03ZM381.06,534.21c.22.36,3.56,1.51,4.31,1.52,5.14.05,6.67-8.49,3.75-11.3-1.56-1.5-6.77-1.5-7.85.32-.5.85-.59,8.85-.22,9.46Z"/>
+                <path d="M327.01,534.34c2.46,3.5-6.23,5.44-8.51,5.44-20.11,0-18.12-32.21,3.24-29.19,1.92.27,6.42,1.15,4.98,3.92s-3.67.31-5.52.03c-16.21-2.41-16.28,22.5-1.33,21.15,1.75-.16,6.29-2.57,7.15-1.35Z"/>
+                <path d="M335.9,521.34c2.73-2.19,7.46-2.73,10.22-.32.38.33,2.07,3.2,2.07,3.4v13.67c0,1.36-4.09,1.36-4.09,0v-12.3c0-3.13-7.34-3.77-8.17.7-.54,2.89.83,10.22-.62,12.22-.48.66-3.12.6-3.43.34-1.1-.92.91-25.18-.38-28.72.73-3.46,4.42-1.3,4.42-.26v11.27Z"/>
+                <path d="M357.74,519.97v11.96c0,1.3,1.76,3.41,3.22,3.63,8.33,1.23,4.34-11.94,5.4-14.72.62-1.62,3.71-1.65,4.25-.77.47.74,0,11.12.06,13.26.05,1.71,1.71,5.04-.39,5.73-2.34.77-3.24-1.75-4-1.82-1.07-.1-3.69,2.72-8.06,1.72-1.67-.38-4.58-3.65-4.58-4.98v-14.01c0-.31,3.41-.56,4.09,0Z"/>
+                <path className="st0" d="M283.35,519.97c.08-.13,2.58-.76,2.99-.64,1.97.56.92,10.16,1.1,12.6.16,2.15,2.12,4.53.76,6.19-2.68,3.25-4.23-1.09-4.52-1.09-1.69.02-3.11,3.05-8.04,1.92-1.38-.32-4.58-3.12-4.58-4.29v-14.69h4.09v13.32c0,.66,2.5,2.47,3.69,2.4,1.12-.06,4.5-2.4,4.5-3.09,0-1.89-.35-12.11,0-12.64Z"/>
+                <path d="M280.1,414.92c1.86-1.83,7,.91,9.73,1.19s8.06.28,10.91,0,10.99-4.01,12.34-2.09c3.48,4.98-10.11,7.29-13.02,7.55-3.96.36-15.83-.02-19.02-2.11-1.45-.95-2.29-3.2-.93-4.54Z"/>
+                <path d="M268.15,330.88c1.21,1.22.63,4.02-.96,4.53-1.39.44-8.02-2.19-11.39-1.93-1.98.16-5.99,1.5-7.74,2.54-2.89,1.71-3.85,5.2-7.94,4.27-3.43-5.39,6.79-10.36,11.11-11.34,3.92-.89,14.02-1.01,16.92,1.92Z"/>
+                <path d="M356.2,337.36c-2.77,2.71-6.01-2.79-8.91-4.05-4.4-1.91-7.75-1.25-12.21-.35-2.14.43-5.76,3.17-7.41.7-2.58-3.87,3.99-5.56,6.72-6.18,5.99-1.36,11.84-.99,17.24,2.18,1.98,1.16,7.16,5.18,4.58,7.7Z"/>
+                <path className="st0" d="M256.83,523.49c-2.45,3.9,7.76,3.63,9.16,8.07,2.74,8.72-12.77,9.54-13.97,5.04-.36-1.35.75-2.46,1.94-2.67s5.97,4.39,8.19-.03c.48-2.89-8.72-3.21-9.51-7.47-1.71-9.15,11.95-7.84,12.9-4.69,1.49,4.93-7.23-.62-8.71,1.74Z"/>
+                <path className="st0" d="M240.51,538.26c-1.92-1.93-.21-14.28-.84-14.87-.51-.48-5.21,1.27-4.1-3.41.85-.17,3.87.22,4.1,0,.7-.69-1.92-8.85,2.98-7.47,2.16.61.39,5.37,1.41,6.83,1.12,1.59,6.43-.86,5.84,3.02-1.19,1.98-4.83.24-5.84,1.67-.56.8-.42,7.71-.3,9.27.11,1.45,1.46,4.22,1.34,4.73-.37,1.57-3.62,1.19-4.59.22Z"/>
+                <path className="st1" d="M270.14,277.49c2.13-.71,6.4,1.9,8.45,2.99,2.68,1.41,12.77,7.97,13.33,10.54.31,1.41-1.65,3.85-3.31,3.4-.98-.26-7.62-6.14-9.68-7.45s-8-3.83-8.93-4.73c-1.25-1.22-1.7-4.13.14-4.75Z"/>
+                <path d="M294.7,272.02c3.29-1.11,9.11,5.43,11.15,7.8,1.62,1.88,8.57,10.18,5.52,12.33-5.06,1.57-7.46-6.36-10.61-9.96-1.42-1.62-10.99-8.5-6.05-10.17Z"/>
+                <path d="M290.64,374.5c5.03-1.3,1.72,6.47,1.6,7.87-.56,6.73,10.26,1.01,11.51,4.81,1.72,5.26-12.32,4.83-15.63.59-2.43-3.11-.71-12.43,2.52-13.27Z"/>
+                <path d="M322.41,290.91c-1.87-1.87-2.8-20.56,4.18-18.2,2.33.79.44,5.2.41,7.07-.05,2.69,1.45,11.12-1.11,11.92-.88.27-2.83-.13-3.47-.78Z"/>
+                <path d="M348.69,280.31c2.59,2.65-1.23,4.49-2.44,6.43-1.38,2.22-2.53,7.6-4.83,8.12-1.62.36-3.35-1.72-3.3-3.34.1-3.13,6.98-14.89,10.57-11.22Z"/>
+                <path d="M253.1,345.87c9.7-2.95,8.74,11.81,1.04,9.68-4.67-1.29-4.57-8.61-1.04-9.68Z"/>
+                <path className="st0" d="M231.48,519.97v18.11c0,.17-.77.86-1.1.97-3.17.34-3-.75-3-3.02v-16.06c0-.31,3.4-.56,4.09,0Z"/>
+                <path d="M337.76,344.51c6.99-1.57,8.73,8.78,2.27,9.82-6.01.97-7.71-8.6-2.27-9.82Z"/>
+                <path d="M380.16,428.52c2.73,1.71-1.1,7.67-4,4.35-2.75-3.14,1.5-5.92,4-4.35Z"/>
+                <path d="M257.86,453.77c4.25-1.37,5.67,6.96.03,5.27-2.65-.8-1.95-4.65-.03-5.27Z"/>
+                <path d="M258,439.26c-1.08,1.72-7.03.64-5.04-3.32,1.84-3.66,6.88.39,5.04,3.32Z"/>
+                <path d="M321.66,459.94c2.93-1.84,6.98,3.2,3.32,5.05-3.96,2-5.04-3.97-3.32-5.05Z"/>
+                <path d="M369.24,440.61c-.79,1.24-5.55,1.01-5.18-2.17.59-5.04,7.82-2,5.18,2.17Z"/>
+                <path d="M384.84,418.95c3.77-1.05,4.98,4.37,1.76,5.27-3.77,1.05-4.98-4.37-1.76-5.27Z"/>
+                <path d="M263.36,442.18c3.77-1.05,4.98,4.37,1.76,5.27-3.77,1.05-4.98-4.37-1.76-5.27Z"/>
+                <path d="M244.25,433.29c3.77-1.05,4.98,4.37,1.76,5.27-3.77,1.05-4.98-4.37-1.76-5.27Z"/>
+                <path d="M227.86,433.98c4.31-1.22,4.75,6.21-.12,5.4-2.82-.47-2.1-4.77.12-5.4Z"/>
+                <path d="M381.45,440.89c2.39,2.34-1.43,6.64-4.46,3.76-2.26-2.15,1.62-6.54,4.46-3.76Z"/>
+                <path d="M290,450.44c2.89,2.54-1.23,7.03-3.75,4.45s1.08-6.8,3.75-4.45Z"/>
+                <path className="st0" d="M228.55,510.5c3.77-1.05,4.98,4.37,1.76,5.27-3.77,1.05-4.98-4.37-1.76-5.27Z"/>
+                <path d="M262.68,412.8c3.77-1.05,4.98,4.37,1.76,5.27-3.77,1.05-4.98-4.37-1.76-5.27Z"/>
+                <path d="M236.71,427.15c4.58-1.55,4.71,4.45,1.8,5.27-3.71,1.05-4.49-4.36-1.8-5.27Z"/>
+                <path d="M224.48,430.29c-1.61,1.61-4.26.76-4.61-1.57-.91-5.99,8.45-2.29,4.61,1.57Z"/>
+                <path d="M399.2,401.94c1.62,1.59.35,4.65-2.21,4.67-5.11.05-1.48-8.3,2.21-4.67Z"/>
+                <path d="M308.09,463.44c3.69-3.62,7.32,4.73,2.21,4.67-2.57-.03-3.83-3.08-2.21-4.67Z"/>
+                <path d="M318.66,407.06c-3.69,3.62-7.32-4.73-2.21-4.67,2.57.03,3.83,3.08,2.21,4.67Z"/>
+                <path d="M248.34,445.59c3.48-.86,5.19,4.32,1.76,5.28-3.85,1.07-4.9-4.51-1.76-5.28Z"/>
+                <path d="M360.29,445.68c3.54,4.17-5.49,7.37-4.61,1.56.33-2.17,3.12-3.32,4.61-1.56Z"/>
+                <path d="M355.6,424.22c-3.58,2.27-7.32-4.78-2.19-5.22,3.35-.29,3.56,4.35,2.19,5.22Z"/>
+                <path d="M253.83,425.5c-3.69,3.62-7.32-4.73-2.21-4.67,2.57.03,3.83,3.08,2.21,4.67Z"/>
+                <path d="M388.94,427.14c4.94-1.38,4.6,7.26-.31,4.87-2.44-1.19-1.87-4.26.31-4.87Z"/>
+                <path d="M264.14,429.69c-2.31,1.47-6.51-1.84-3.83-4.51,3.35-3.34,6.17,3.03,3.83,4.51Z"/>
+                <path d="M302.29,459.67c-3.3,3.8-7.56-4.74-2.22-4.67,2.62.04,3.6,3.08,2.22,4.67Z"/>
+                <path d="M333.34,463.09c-2.38-2.38.83-6.24,3.64-3.99s-.94,6.68-3.64,3.99Z"/>
+                <path d="M335.02,409.38c3.93-1.1,5.17,4.88,1.11,5.21-3.4.28-4.06-4.39-1.11-5.21Z"/>
+                <path d="M274.38,411.24c-2.31,1.45-6.5-1.79-3.83-4.52,2.93-3,6.42,2.89,3.83,4.52Z"/>
+                <path d="M328.21,407.41c2.38,2.38-.83,6.24-3.64,3.99s.94-6.68,3.64-3.99Z"/>
+                <path d="M302.29,434.74c1.38,1.59.4,4.63-2.22,4.67-5.34.07-1.08-8.47,2.22-4.67Z"/>
+                <path d="M365.14,431.04c-1.68,2.64-7.14-1.65-4.36-4,3.27-2.76,5.9,1.57,4.36,4Z"/>
+                <path d="M351.39,432.62c4.85-1.38,4.18,7.39-.48,5.03-2.07-1.05-1.74-4.4.48-5.03Z"/>
+                <path d="M341.81,442.15c3.55-1.16,5.16,4.34,1.8,5.29-3.75,1.06-4.44-4.43-1.8-5.29Z"/>
+                <path d="M366.38,449.67c3.55-1.16,5.16,4.34,1.8,5.29-3.75,1.06-4.44-4.43-1.8-5.29Z"/>
+                <path d="M234.99,443.55c.86-1.35,4.28-.95,4.68,1.64.89,5.75-7.51,2.8-4.68-1.64Z"/>
+                <path d="M304.67,447.37c-2.32-2.27,1.45-6.78,3.98-3.64,2.23,2.77-1.54,6.04-3.98,3.64Z"/>
+                <path d="M282.15,402.63c2.44-2.4,6.22.87,3.98,3.64-2.53,3.14-6.3-1.37-3.98-3.64Z"/>
+                <path d="M341.82,428.52c1.81-.16,4.48,4.21,1.09,5.24-4.92,1.49-4.68-4.93-1.09-5.24Z"/>
+                <path d="M288.29,443.27c-2.32-2.27,1.45-6.78,3.98-3.64,2.23,2.77-1.54,6.04-3.98,3.64Z"/>
+                <path d="M210.5,415.6c2.27-2.32,6.77,1.45,3.64,3.99-2.76,2.23-6.03-1.54-3.64-3.99Z"/>
+                <path d="M396.53,413.49c2.82,4.44-5.57,7.38-4.68,1.64.4-2.59,3.83-2.98,4.68-1.64Z"/>
+                <path d="M304.94,399.8c4.68-1.58,4.63,4.61,1.82,5.31s-4.17-4.52-1.82-5.31Z"/>
+                <path d="M317.94,449.7c2.11-.18,3.97,4.3,1.13,5.26-4.75,1.61-4.86-4.95-1.13-5.26Z"/>
+                <path d="M330.1,424.56c2.03.01,4.32,3.63,1.7,4.88-5.15,2.45-5.37-4.9-1.7-4.88Z"/>
+                <path d="M346.57,455.14c4.8-1.62,4.49,4.79,1.86,5.28-2.83.52-4.32-4.45-1.86-5.28Z"/>
+                <path d="M318.94,441.29c-1.61-2.54,1.45-6.94,4.05-3.71,2.68,3.32-2.71,5.83-4.05,3.71Z"/>
+                <path d="M283.93,459.94c1.33.84,1.1,5.73-2.02,5.06-5.05-1.1-1.23-7.1,2.02-5.06Z"/>
+                <path d="M276.61,447.45c-2.96-1.86,1.86-8.71,4.19-3.11,1.03,2.48-2.47,4.19-4.19,3.11Z"/>
+                <path d="M273.7,454.47c1.89,2.98-3.08,6.34-4.58,3.9-2.43-3.93,3.33-5.88,4.58-3.9Z"/>
+                <path d="M293.67,406.46c-.87-.55-1.64-5.47,2.25-4.68,5.22,1.07.75,6.59-2.25,4.68Z"/>
+                <path d="M330.78,445.75c2.72,0,3.37,4.43,1.27,5.13-4.84,1.63-4.77-5.14-1.27-5.13Z"/>
+                <path d="M341.15,416.87c3.8-.96,4.32,7.48-.48,5.06-2.11-1.06-1.65-4.53.48-5.06Z"/>
+            </svg>
+        );
+
+        // --- Splash Screen Component ---
+        const SplashScreen = ({ onFinish }) => {
+            const [isExiting, setIsExiting] = useState(false);
+
+            useEffect(() => {
+                const timer1 = setTimeout(() => setIsExiting(true), 2500);
+                const timer2 = setTimeout(onFinish, 3000);
+                return () => { clearTimeout(timer1); clearTimeout(timer2); };
+            }, [onFinish]);
+
+            return (
+                <div id="splash-screen" className={isExiting ? 'animate-splash-exit' : ''}>
+                    <div className="w-56 sm:w-72 mb-8 animate-splash-logo">
+                        <KitsuLogo className="w-full h-full" />
+                    </div>
+                    <div className="text-center animate-splash-text">
+                        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2 tracking-wider">CLAY學步車</h1>
+                        <p className="text-gray-600 text-base sm:text-lg tracking-widest">陪伴你從匱乏走向豐盛</p>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Loading Overlay Component ---
+        const LoadingOverlay = ({ message }) => {
+            return (
+                <div id="loading-overlay" className="animate-fade-in">
+                    <div className="w-40 h-40 sm:w-48 sm:h-48 mb-6 animate-loading-pulse">
+                        <KitsuLogo className="w-full h-full drop-shadow-xl" />
+                    </div>
+                    <div className="text-white font-medium text-lg tracking-wide text-center px-4 drop-shadow-md">
+                        {message || '處理中...'}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Settings Modal Component (NEW Phase 1) ---
+        const SettingsModal = ({ isOpen, onClose, userName, setUserName, reminderEnabled, reminderTime, notificationPermission, toggleReminder, updateReminderTime, testNotification, isInstalled }) => {
+            const [tempName, setTempName] = useState(userName);
+            const fileInputRef = useRef(null);
+
+            useEffect(() => { setTempName(userName); }, [userName]);
+
+            if (!isOpen) return null;
+
+            const handleSaveName = () => {
+                const newName = tempName.trim() || 'Baby Clayer';
+                setUserName(newName);
+                localStorage.setItem('clay_username', newName);
+                alert('✅ 名字已更新！');
+            };
+
+            const handleBackup = () => {
+                const data = {
+                    version: 1,
+                    timestamp: new Date().toISOString(),
+                    username: localStorage.getItem('clay_username') || 'Baby Clayer',
+                    history: JSON.parse(localStorage.getItem('clay_history') || '[]'),
+                    draft: JSON.parse(localStorage.getItem('clay_draft') || '{}'),
+                    dismissedHint: localStorage.getItem('clay_install_hint_dismissed')
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `CLAY備份_${data.username}_${data.timestamp.slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            const handleRestore = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (!confirm('⚠️ 確定要匯入備份嗎?\n\n現有的記錄將被這個備份檔案覆蓋,無法復原。')) {
+                    e.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const backup = JSON.parse(event.target.result);
+                        
+                        if (backup.history && Array.isArray(backup.history)) {
+                            localStorage.setItem('clay_history', JSON.stringify(backup.history));
+                            if (backup.username) localStorage.setItem('clay_username', backup.username);
+                            if (backup.draft) localStorage.setItem('clay_draft', JSON.stringify(backup.draft));
+                            if (backup.dismissedHint) localStorage.setItem('clay_install_hint_dismissed', backup.dismissedHint);
+                            
+                            alert('🎉 匯入成功！頁面將重新整理。');
+                            window.location.reload();
+                        } else {
+                            alert('❌ 檔案格式錯誤：找不到記錄資料');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('❌ 無法讀取檔案，請確認是正確的 JSON 備份檔。');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-modal-in" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2"><i data-lucide="settings" width="20"></i> 設定</h3>
+                            <button onClick={onClose}><i data-lucide="x" width="24" className="text-gray-500"></i></button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            {/* 名字設定 */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">你的名字</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={tempName} 
+                                        onChange={(e) => setTempName(e.target.value)}
+                                        className="flex-1 p-3 border-2 border-gray-200 rounded-xl focus:border-orange-400 outline-none transition-colors"
+                                        placeholder="例如：Baby Clayer"
+                                    />
+                                    <button onClick={handleSaveName} className="bg-gray-800 text-white px-4 rounded-xl font-bold active:scale-95">儲存</button>
+                                </div>
+                            </div>
+                            
+                            <hr className="border-gray-100" />
+
+                            {/* 每日提醒設定 */}
+                            <div>
+                                <div className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                    <i data-lucide="bell" width="16"></i>
+                                    每日提醒
+                                </div>
+                                
+                                {/* 開關 */}
+                                <div className="flex items-center justify-between mb-3 bg-gray-50 p-3 rounded-xl">
+                                    <span className="text-sm text-gray-700">提醒狀態</span>
+                                    <button 
+                                        onClick={toggleReminder}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${reminderEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                    >
+                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${reminderEnabled ? 'translate-x-6' : ''}`}></div>
+                                    </button>
+                                </div>
+                                
+                                {/* 時間選擇 */}
+                                {reminderEnabled && (
+                                    <div className="mb-3">
+                                        <label className="block text-sm text-gray-600 mb-2">提醒時間</label>
+                                        <input 
+                                            type="time" 
+                                            value={reminderTime}
+                                            onChange={(e) => updateReminderTime(e.target.value)}
+                                            className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-orange-400 outline-none"
+                                        />
+                                    </div>
+                                )}
+                                
+                                {/* 權限狀態 */}
+                                <div className="text-xs text-gray-500 mb-2">
+                                    通知權限: {notificationPermission === 'granted' ? '✅ 已允許' : notificationPermission === 'denied' ? '❌ 已拒絕' : '⚠️ 尚未設定'}
+                                </div>
+                                
+                                {notificationPermission === 'denied' && (
+                                    <div className="bg-red-50 p-3 rounded-xl text-xs text-red-700 mb-2">
+                                        請在瀏覽器設定中允許通知權限
+                                    </div>
+                                )}
+                                
+                                {/* 測試按鈕 */}
+                                {reminderEnabled && notificationPermission === 'granted' && (
+                                    <button 
+                                        onClick={testNotification}
+                                        className="w-full p-2 bg-blue-100 text-blue-700 rounded-xl text-sm font-medium active:scale-95"
+                                    >
+                                        🔔 測試提醒
+                                    </button>
+                                )}
+                                
+                                {/* 說明 */}
+                                <div className="bg-blue-50 p-3 rounded-xl mt-3">
+                                    <p className="text-xs text-blue-700">
+                                        💡 提示:<br/>
+                                        • 建議選擇固定時間養成習慣<br/>
+                                        • {isInstalled ? 'App已安裝,提醒更穩定 ✅' : '安裝App後提醒更穩定'}<br/>
+                                        • 已寫過今天的CLAY不會提醒
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <hr className="border-gray-100" />
+
+                            {/* 備份與還原 */}
+                            <div>
+                                <div className="text-sm font-bold text-gray-700 mb-3">資料管理 (跨裝置使用)</div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={handleBackup} className="flex flex-col items-center gap-2 p-4 bg-orange-50 text-orange-700 rounded-xl border-2 border-orange-100 active:scale-95 transition-transform">
+                                        <i data-lucide="download-cloud" width="24"></i>
+                                        <span className="font-bold text-sm">匯出備份</span>
+                                    </button>
+                                    
+                                    <button onClick={() => fileInputRef.current.click()} className="flex flex-col items-center gap-2 p-4 bg-green-50 text-green-700 rounded-xl border-2 border-green-100 active:scale-95 transition-transform">
+                                        <i data-lucide="upload-cloud" width="24"></i>
+                                        <span className="font-bold text-sm">匯入還原</span>
+                                    </button>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        onChange={handleRestore} 
+                                        accept=".json" 
+                                        className="hidden" 
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-400 mt-3 text-center">匯出檔案為 .json 格式，換手機時請先匯出，再到新手機匯入。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Utils ---
+        const saveToStorage = (key, value) => {
+            try { localStorage.setItem(key, JSON.stringify(value)); return true; } 
+            catch (e) { alert('⚠️ 儲存空間已滿！'); return false; }
+        };
+        const getISODate = () => {
+            const d = new Date(); const offset = d.getTimezoneOffset() * 60000;
+            return new Date(d - offset).toISOString().slice(0, 10);
+        };
+        const formatDisplayDate = (str) => str ? str.replace(/-/g, '/') : '';
+
+        const SCARCITY_TO_ABUNDANCE = { '應該': ['渴望', '想要', '選擇'], '必須': ['選擇', '決定', '渴望'], '不夠': ['正在成長', '正在學習'], '失敗': ['學習', '經驗', '成長'], '做不到': ['還不會', '正在學習'], '缺點': ['成長空間', '可能性'], '問題': ['機會', '挑戰'], '困難': ['挑戰', '機會'], '壓力': ['動力', '能量'], '焦慮': ['期待', '關注'] };
+        const DAILY_ENCOURAGEMENTS = { 1: '🌱 歡迎！你今天出生了！\n你是Baby Clayer，\n你本來就完美。', 2: '💚 第二天！\n不是堅持，是享受。', 3: '✨ 第三天！\n寫著寫著，就走到了。', 7: '🌿 一週了！你看，\n每天一點點，就走了7天。', 14: '🌳 兩週！你開始聽見\n心裡的微聲了嗎？', 21: '🎋 三週！再一週就畢業了，\n但這不是結束，\n是另一個開始。', 28: '🎉 28天！你做到了！\n不是因為堅持，\n而是因為享受。\n恭喜你，Kids Clayer！' };
+        const DEFAULT_ENCOURAGEMENT = '💫 繼續前進！\n每一天都是新的發現。';
+        const KITSU_WISDOM = ['慢！即高效', '寫著寫著就走到了', '匱乏的聲量很大，但你可以選擇聽微聲', '你本來就完美', '不是追逐，是創造', '停下來，沉澱，讓答案浮現', '創造的力量來自內在', '每天Again，就走到了'];
+
+        // --- Main App ---
+        const App = () => {
+            const [screen, setScreen] = useState('home');
+            const [currentDay, setCurrentDay] = useState(1);
+            const [clayHistory, setClayHistory] = useState([]);
+            const [todayClay, setTodayClay] = useState({ capture: '', link: '', aspire: '', why: '', yield: '', title: '' });
+            const [showSuccess, setShowSuccess] = useState(false);
+            const [scarcityAlert, setScarcityAlert] = useState(null);
+            const [showInstallHint, setShowInstallHint] = useState(false);
+            const [showSplash, setShowSplash] = useState(true);
+            const [loadingState, setLoadingState] = useState({ isLoading: false, message: '' });
+            
+            // Phase 1: New State
+            const [userName, setUserName] = useState('Baby Clayer');
+            const [showSettings, setShowSettings] = useState(false);
+            
+            // Phase 2.2: PWA & Reminder State
+            const [deferredPrompt, setDeferredPrompt] = useState(null);
+            const [isInstalled, setIsInstalled] = useState(false);
+            const [reminderEnabled, setReminderEnabled] = useState(false);
+            const [reminderTime, setReminderTime] = useState('20:00');
+            const [notificationPermission, setNotificationPermission] = useState('default');
+
+            useEffect(() => {
+                const saved = localStorage.getItem('clay_history');
+                if (saved) {
+                    try {
+                        const history = JSON.parse(saved);
+                        setClayHistory(history);
+                        setCurrentDay(history.length + 1);
+                    } catch (e) {}
+                }
+                const savedDraft = localStorage.getItem('clay_draft');
+                if (savedDraft) {
+                    try { setTodayClay(JSON.parse(savedDraft)); } catch (e) {}
+                }
+                
+                // Phase 1: Load Username
+                const savedName = localStorage.getItem('clay_username');
+                if (savedName) setUserName(savedName);
+
+                lucide.createIcons();
+                
+                const hintDismissed = localStorage.getItem('clay_install_hint_dismissed');
+                if (!hintDismissed) {
+                    setTimeout(() => setShowInstallHint(true), 3500); 
+                }
+
+                const handleStorageChange = (e) => {
+                    if (e.key === 'clay_history') {
+                        const newHistory = JSON.parse(e.newValue || '[]');
+                        setClayHistory(newHistory);
+                        setCurrentDay(newHistory.length + 1);
+                    }
+                    // Sync Username across tabs
+                    if (e.key === 'clay_username') {
+                        setUserName(e.newValue || 'Baby Clayer');
+                    }
+                };
+                window.addEventListener('storage', handleStorageChange);
+                return () => window.removeEventListener('storage', handleStorageChange);
+            }, []);
+
+            useEffect(() => { lucide.createIcons(); });
+            useEffect(() => { saveToStorage('clay_draft', todayClay); }, [todayClay]);
+            
+            // Phase 2.2: PWA & Reminder Setup
+            useEffect(() => {
+                // 註冊Service Worker
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(reg => console.log('[PWA] Service Worker registered'))
+                        .catch(err => console.log('[PWA] Service Worker registration failed:', err));
+                }
+                
+                // 監聽PWA安裝提示
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    setDeferredPrompt(e);
+                    console.log('[PWA] Install prompt available');
+                });
+                
+                // 檢查是否已安裝
+                window.addEventListener('appinstalled', () => {
+                    setIsInstalled(true);
+                    setDeferredPrompt(null);
+                    console.log('[PWA] App installed');
+                });
+                
+                // 檢查standalone mode (已安裝)
+                if (window.matchMedia('(display-mode: standalone)').matches) {
+                    setIsInstalled(true);
+                }
+                
+                // 載入提醒設定
+                const savedReminderEnabled = localStorage.getItem('clay_reminder_enabled') === 'true';
+                const savedReminderTime = localStorage.getItem('clay_reminder_time') || '20:00';
+                setReminderEnabled(savedReminderEnabled);
+                setReminderTime(savedReminderTime);
+                
+                // 檢查通知權限
+                if ('Notification' in window) {
+                    setNotificationPermission(Notification.permission);
+                }
+                
+                // 設定每日提醒檢查 (每分鐘檢查一次)
+                const reminderInterval = setInterval(() => {
+                    checkAndSendReminder();
+                }, 60000); // 每60秒檢查
+                
+                return () => clearInterval(reminderInterval);
+            }, [reminderEnabled, reminderTime]);
+            
+            const checkAndSendReminder = () => {
+                if (!reminderEnabled || notificationPermission !== 'granted') return;
+                
+                const now = new Date();
+                const [hour, minute] = reminderTime.split(':').map(Number);
+                
+                // 檢查是否到了提醒時間
+                if (now.getHours() === hour && now.getMinutes() === minute) {
+                    // 檢查今天是否已寫
+                    const today = getISODate();
+                    const lastReminder = localStorage.getItem('clay_last_reminder_date');
+                    
+                    if (lastReminder === today) return; // 今天已提醒過
+                    
+                    const hasWrittenToday = clayHistory.some(clay => clay.date === today);
+                    
+                    if (!hasWrittenToday) {
+                        sendNotification();
+                        localStorage.setItem('clay_last_reminder_date', today);
+                    }
+                }
+            };
+            
+            const sendNotification = () => {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('🔔 該寫今天的CLAY囉！', {
+                        body: `${userName},今天是Day ${currentDay},繼續你的旅程 💚`,
+                        icon: './icon-192.png',
+                        badge: './icon-192.png',
+                        tag: 'clay-daily-reminder',
+                        requireInteraction: false
+                    });
+                }
+            };
+            
+            const requestNotificationPermission = async () => {
+                if ('Notification' in window) {
+                    const permission = await Notification.requestPermission();
+                    setNotificationPermission(permission);
+                    return permission;
+                }
+                return 'denied';
+            };
+            
+            const toggleReminder = async () => {
+                if (!reminderEnabled) {
+                    // 開啟提醒前先請求權限
+                    if (notificationPermission !== 'granted') {
+                        const permission = await requestNotificationPermission();
+                        if (permission !== 'granted') {
+                            alert('⚠️ 請允許通知權限才能使用提醒功能');
+                            return;
+                        }
+                    }
+                }
+                
+                const newEnabled = !reminderEnabled;
+                setReminderEnabled(newEnabled);
+                localStorage.setItem('clay_reminder_enabled', newEnabled);
+            };
+            
+            const updateReminderTime = (newTime) => {
+                setReminderTime(newTime);
+                localStorage.setItem('clay_reminder_time', newTime);
+            };
+            
+            const testNotification = async () => {
+                if (notificationPermission !== 'granted') {
+                    const permission = await requestNotificationPermission();
+                    if (permission !== 'granted') {
+                        alert('⚠️ 請允許通知權限');
+                        return;
+                    }
+                }
+                sendNotification();
+                alert('✅ 測試通知已發送！');
+            };
+            
+            const installPWA = async () => {
+                if (!deferredPrompt) {
+                    alert('請使用瀏覽器選單中的「加入主畫面」或「安裝」功能');
+                    return;
+                }
+                
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                if (outcome === 'accepted') {
+                    setIsInstalled(true);
+                }
+                setDeferredPrompt(null);
+            };
+
+            const setLoading = (isLoading, message = '') => {
+                setLoadingState({ isLoading, message });
+            };
+
+            const checkScarcity = (text) => {
+                for (const [scarcity, abundance] of Object.entries(SCARCITY_TO_ABUNDANCE)) {
+                    if (text.includes(scarcity)) return { scarcity, abundance };
+                }
+                return null;
+            };
+
+            const handleTextChange = (field, value) => {
+                setTodayClay(prev => ({ ...prev, [field]: value }));
+                if (field === 'aspire' || field === 'why') {
+                    const detected = checkScarcity(value);
+                    if (detected && value.length > 5) setScarcityAlert(detected);
+                }
+            };
+
+            const saveClay = () => {
+                setLoading(true, '💾 儲存中...');
+                setTimeout(() => {
+                    const isoDate = getISODate();
+                    const newEntry = { day: currentDay, date: isoDate, ...todayClay };
+                    const newHistory = [...clayHistory, newEntry];
+                    
+                    if (saveToStorage('clay_history', newHistory)) {
+                        setClayHistory(newHistory);
+                        setLoading(false);
+                        setShowSuccess(true);
+                        setTodayClay({ capture: '', link: '', aspire: '', why: '', yield: '', title: '' });
+                        localStorage.removeItem('clay_draft');
+                        setTimeout(() => { setShowSuccess(false); setScreen('home'); setCurrentDay(currentDay + 1); }, 2000);
+                    } else {
+                        setLoading(false);
+                    }
+                }, 800);
+            };
+
+            return (
+                <div className="bg-gradient-to-br from-orange-50 to-green-50 h-[100dvh] w-full overflow-hidden font-sans relative">
+                    {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+                    {loadingState.isLoading && <LoadingOverlay message={loadingState.message} />}
+                    
+                    {/* Phase 1: Settings Modal */}
+                    <SettingsModal 
+                        isOpen={showSettings} 
+                        onClose={() => setShowSettings(false)} 
+                        userName={userName} 
+                        setUserName={setUserName}
+                        reminderEnabled={reminderEnabled}
+                        reminderTime={reminderTime}
+                        notificationPermission={notificationPermission}
+                        toggleReminder={toggleReminder}
+                        updateReminderTime={updateReminderTime}
+                        testNotification={testNotification}
+                        isInstalled={isInstalled}
+                    />
+
+                    {screen === 'home' && <HomeScreen 
+                        currentDay={currentDay} 
+                        clayHistory={clayHistory} 
+                        onStartClay={() => setScreen('clay')} 
+                        onViewHistory={() => setScreen('history')} 
+                        onViewProgress={() => setScreen('progress')} 
+                        userName={userName} 
+                        onOpenSettings={() => setShowSettings(true)}
+                        isInstalled={isInstalled}
+                        deferredPrompt={deferredPrompt}
+                        installPWA={installPWA}
+                    />}
+                    {screen === 'clay' && <ClayScreen currentDay={currentDay} todayClay={todayClay} onTextChange={handleTextChange} onSave={saveClay} onBack={() => setScreen('home')} scarcityAlert={scarcityAlert} onDismissAlert={() => setScarcityAlert(null)} showSuccess={showSuccess} />}
+                    {screen === 'history' && <HistoryScreen clayHistory={clayHistory} onBack={() => setScreen('home')} setLoading={setLoading} userName={userName} />}
+                    {screen === 'progress' && <ProgressScreen currentDay={currentDay} clayHistory={clayHistory} onBack={() => setScreen('home')} />}
+                    
+                    {showInstallHint && !showSplash && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" style={{touchAction: 'none'}}>
+                            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-fade-in-up">
+                                <div className="text-center mb-4"><div className="text-4xl mb-2">📱</div><h3 className="font-bold text-lg text-gray-800">加到主畫面</h3></div>
+                                <div className="text-gray-600 text-center mb-6 whitespace-pre-line leading-relaxed">💡 建議把CLAY學步車加到主畫面，就像安裝App一樣，每天更容易打開喔！</div>
+                                <div className="space-y-3">
+                                    <button onClick={() => setShowInstallHint(false)} className="w-full py-3 bg-gradient-to-r from-orange-500 to-green-500 text-white rounded-xl font-bold active:scale-95">知道了</button>
+                                    <button onClick={() => { localStorage.setItem('clay_install_hint_dismissed', 'true'); setShowInstallHint(false); }} className="w-full py-3 text-gray-500 text-sm underline">不再提示</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- Sub Screens ---
+        const HomeScreen = ({ currentDay, clayHistory, onStartClay, onViewHistory, onViewProgress, userName, onOpenSettings, isInstalled, deferredPrompt, installPWA }) => {
+            const encouragement = DAILY_ENCOURAGEMENTS[currentDay] || DEFAULT_ENCOURAGEMENT;
+            const wisdom = KITSU_WISDOM[Math.floor(Math.random() * KITSU_WISDOM.length)];
+            const todayDone = clayHistory.some(c => c.day === currentDay);
+            const progress = (clayHistory.length / 28 * 100).toFixed(0);
+
+            return (
+                <div className="w-full h-full flex flex-col">
+                    {/* Header with Settings Button */}
+                    <div className="absolute top-4 right-4 z-20">
+                        <button onClick={onOpenSettings} className="p-2 bg-white/50 backdrop-blur-sm rounded-full shadow-sm text-gray-600 hover:bg-white transition-all">
+                            <i data-lucide="settings" width="20"></i>
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto overscroll-y-contain p-6 max-w-md mx-auto w-full">
+                        <header className="text-center mb-8 pt-6 relative">
+                            <div className="w-40 h-40 mx-auto mb-4 animate-logo-pulse">
+                                <KitsuLogo className="w-full h-full" />
+                            </div>
+                            {/* Personal Greeting */}
+                            <h1 className="text-3xl font-bold text-gray-800 mb-1">Hi, {userName}</h1>
+                            <p className="text-gray-600 text-sm">今天也要一起CLAY嗎？</p>
+                        </header>
+                        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <div><div className="text-sm text-gray-500">你的旅程</div><div className="text-3xl font-bold text-orange-600">Day {currentDay}</div></div>
+                                <div className="text-5xl">{currentDay <= 7 ? '🌱' : currentDay <= 21 ? '🌿' : '🌳'}</div>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3 mb-2"><div className="bg-gradient-to-r from-orange-400 to-green-400 h-3 rounded-full transition-all" style={{width: `${progress}%`}}></div></div>
+                            <div className="text-sm text-gray-500 text-center">{clayHistory.length}/28 天</div>
+                        </div>
+                        <div className="bg-gradient-to-r from-orange-100 to-orange-50 rounded-2xl p-6 mb-6 border-2 border-orange-200">
+                            <div className="text-orange-800 whitespace-pre-line text-center font-medium">{encouragement}</div>
+                        </div>
+                        <button onClick={onStartClay} disabled={todayDone} className={`w-full py-6 rounded-2xl font-bold text-xl mb-4 shadow-lg transition-all touch-manipulation ${todayDone ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-orange-500 to-green-500 text-white active:scale-95'}`}>{todayDone ? '✓ 今天已完成' : '✨ 開始今天的CLAY'}</button>
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <button onClick={onViewHistory} className="py-4 bg-white rounded-xl border-2 border-gray-200 flex flex-col items-center gap-2 active:scale-95 touch-manipulation"><i data-lucide="book-open" width="24"></i><span className="font-bold text-gray-700">我的日記</span></button>
+                            <button onClick={onViewProgress} className="py-4 bg-white rounded-xl border-2 border-gray-200 flex flex-col items-center gap-2 active:scale-95 touch-manipulation"><i data-lucide="trending-up" width="24"></i><span className="font-bold text-gray-700">成長軌跡</span></button>
+                        </div>
+                        <div className="bg-white/50 rounded-xl p-4 text-center mb-6"><div className="text-sm text-gray-500 mb-1">💭 橘胖說</div><div className="text-gray-700 font-medium">「{wisdom}」</div></div>
+                        
+                        {/* PWA安裝提示 */}
+                        {!isInstalled && deferredPrompt && (
+                            <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-4 mb-6 border-2 border-blue-200 animate-fade-in">
+                                <div className="text-center mb-3">
+                                    <div className="text-3xl mb-2">📱</div>
+                                    <div className="font-bold text-gray-800 mb-1">安裝CLAY App</div>
+                                    <div className="text-sm text-gray-600">
+                                        更好的體驗,離線也能用<br/>
+                                        每日提醒更穩定
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={installPWA}
+                                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold active:scale-95"
+                                >
+                                    ⬇️ 立即安裝
+                                </button>
+                            </div>
+                        )}
+                        
+                        {isInstalled && (
+                            <div className="bg-green-50 rounded-xl p-3 mb-6 text-center border-2 border-green-100">
+                                <div className="text-green-700 text-sm font-medium">
+                                    ✅ App已安裝,體驗更完整!
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const ClayScreen = ({ currentDay, todayClay, onTextChange, onSave, onBack, scarcityAlert, onDismissAlert, showSuccess }) => {
+            const [step, setStep] = useState(0);
+            const canProceed = () => {
+                if (step === 0) return todayClay.capture.length > 0;
+                if (step === 1) return todayClay.link.length > 0;
+                if (step === 2) return todayClay.aspire.length > 0;
+                if (step === 3) return todayClay.why.length > 0;
+                if (step === 4) return todayClay.yield.length > 0;
+                if (step === 5) return todayClay.title.length <= 20; // 標題選填,但不能超過20字
+                return false;
+            };
+            const textareaClass = "w-full h-56 p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-orange-400 focus:ring-2 focus:ring-orange-200 resize-none outline-none appearance-none";
+
+            return (
+                <div className="h-full w-full flex flex-col bg-white">
+                    <div className="bg-gradient-to-r from-orange-500 to-green-500 text-white p-4 flex items-center gap-3 shrink-0 shadow-lg z-10">
+                        <button onClick={onBack} className="p-1"><i data-lucide="arrow-left" width="24"></i></button>
+                        <div className="flex-1"><div className="text-sm opacity-90">Day {currentDay}</div><div className="font-bold">今天的CLAY</div></div>
+                        <div className="text-sm opacity-90">{step + 1}/6</div>
+                    </div>
+                    <div className="w-full bg-gray-200 h-2 shrink-0"><div className="bg-gradient-to-r from-orange-400 to-green-400 h-2 transition-all" style={{width: `${(step + 1) / 6 * 100}%`}}></div></div>
+                    <div className="flex-1 overflow-y-auto overscroll-contain p-6 max-w-md mx-auto w-full">
+                        {step === 0 && (<div className="space-y-4 animate-fade-in pb-4"><div className="text-center mb-6"><div className="text-5xl mb-3">🎯</div><h2 className="text-2xl font-bold text-gray-800 mb-2">Capture 捕捉</h2><p className="text-gray-600">今天什麼讓你有感覺？</p></div><textarea value={todayClay.capture} onChange={(e) => onTextChange('capture', e.target.value)} placeholder="可能是一個瞬間、一句話、一個畫面..." className={textareaClass} autoFocus /><div className="bg-orange-50 p-4 rounded-xl text-sm text-gray-600">💡 提示：不用寫得很完美，只要記錄那個觸動你的瞬間就好。</div></div>)}
+                        {step === 1 && (<div className="space-y-4 animate-fade-in pb-4"><div className="text-center mb-6"><div className="text-5xl mb-3">🔗</div><h2 className="text-2xl font-bold text-gray-800 mb-2">Link 連結</h2><p className="text-gray-600">這讓你想到什麼？</p></div><div className="bg-gray-50 p-4 rounded-xl mb-4"><div className="text-sm text-gray-500 mb-2">你捕捉到的：</div><div className="text-gray-700 max-h-32 overflow-y-auto">{todayClay.capture}</div></div><textarea value={todayClay.link} onChange={(e) => onTextChange('link', e.target.value)} placeholder="可能是一個想法、一個記憶、一個連結..." className={textareaClass.replace('focus:border-orange-400 focus:ring-orange-200', 'focus:border-green-400 focus:ring-green-200')} autoFocus /><div className="bg-green-50 p-4 rounded-xl text-sm text-gray-600">💡 提示：想到什麼就寫什麼，不要過濾。</div></div>)}
+                        {step === 2 && (<div className="space-y-4 animate-fade-in pb-4"><div className="text-center mb-6"><div className="text-5xl mb-3">✨</div><h2 className="text-2xl font-bold text-gray-800 mb-2">Aspire 渴望</h2><p className="text-gray-600">從這個想法中，你看見什麼渴望？</p></div><div className="bg-green-50 p-4 rounded-xl mb-2 border-2 border-green-200"><div className="text-sm text-green-600 mb-2">💭 你剛才想到：</div><div className="text-green-900 font-medium max-h-24 overflow-y-auto">{todayClay.link}</div></div><div className="text-center text-3xl text-gray-400 my-2">↓</div><div className="text-center text-gray-600 mb-3 font-medium">這讓你看見什麼渴望？</div><textarea value={todayClay.aspire} onChange={(e) => onTextChange('aspire', e.target.value)} placeholder="我渴望..." className={textareaClass.replace('focus:border-orange-400 focus:ring-orange-200', 'focus:border-purple-400 focus:ring-purple-200')} autoFocus /><div className="bg-purple-50 p-4 rounded-xl text-sm text-gray-600">💡 提示：這不是你「應該」做什麼，而是從你的想法中，自然浮現的渴望。</div>{scarcityAlert && (<div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4"><div className="flex items-start gap-3"><div className="text-2xl">💭</div><div className="flex-1"><div className="font-bold text-yellow-900 mb-2">溫柔提醒</div><div className="text-sm text-yellow-800 mb-3">我注意到你用了「{scarcityAlert.scarcity}」，試試看用豐盛的說法：</div><div className="flex flex-wrap gap-2 mb-3">{scarcityAlert.abundance.map((word, i) => (<button key={i} onClick={() => { const newText = todayClay.aspire.replace(scarcityAlert.scarcity, word); onTextChange('aspire', newText); onDismissAlert(); }} className="px-3 py-1 bg-yellow-200 text-yellow-900 rounded-lg text-sm font-medium active:scale-95">{word}</button>))}</div><button onClick={onDismissAlert} className="text-sm text-yellow-700 underline p-2">不用，謝謝</button></div></div></div>)}</div>)}
+                        {step === 3 && (<div className="space-y-4 animate-fade-in pb-4"><div className="text-center mb-6"><div className="text-5xl mb-3">🤔</div><h2 className="text-2xl font-bold text-gray-800 mb-2">Ask Why 探詢</h2><p className="text-gray-600">為什麼你渴望這個？</p></div><div className="bg-purple-50 p-4 rounded-xl mb-4 border-2 border-purple-200"><div className="text-sm text-purple-600 mb-2">你說你渴望：</div><div className="text-purple-900 font-medium max-h-24 overflow-y-auto">{todayClay.aspire}</div></div><textarea value={todayClay.why} onChange={(e) => onTextChange('why', e.target.value)} placeholder="因為..." className={textareaClass.replace('focus:border-orange-400 focus:ring-orange-200', 'focus:border-blue-400 focus:ring-blue-200')} autoFocus /><div className="bg-blue-50 p-4 rounded-xl text-sm text-gray-600">💡 提示：這個答案，就是你的洞察。</div></div>)}
+                        {step === 4 && (<div className="space-y-4 animate-fade-in pb-4"><div className="text-center mb-6"><div className="text-5xl mb-3">💎</div><h2 className="text-2xl font-bold text-gray-800 mb-2">Yield 收穫</h2><p className="text-gray-600">你從中得到什麼洞察？</p></div><div className="bg-blue-50 p-4 rounded-xl mb-4 border-2 border-blue-200"><div className="text-sm text-blue-600 mb-2">你說：</div><div className="text-blue-900 max-h-24 overflow-y-auto">{todayClay.why}</div></div><textarea value={todayClay.yield} onChange={(e) => onTextChange('yield', e.target.value)} placeholder="我發現/我明白/我領悟到..." className={textareaClass.replace('focus:border-orange-400 focus:ring-orange-200', 'focus:border-green-400 focus:ring-green-200')} autoFocus /><div className="bg-green-50 p-4 rounded-xl text-sm text-gray-600">💡 提示：這就是今天最珍貴的禮物。</div></div>)}
+                        {step === 5 && (<div className="space-y-4 animate-fade-in pb-4"><div className="text-center mb-6"><div className="text-5xl mb-3">📌</div><h2 className="text-2xl font-bold text-gray-800 mb-2">今日標題 (選填)</h2><p className="text-gray-600">用一句話總結今天的CLAY</p></div><div className="bg-green-50 p-4 rounded-xl mb-4 border-2 border-green-200"><div className="text-sm text-green-600 mb-2">💎 今天的收穫：</div><div className="text-green-900 max-h-24 overflow-y-auto">{todayClay.yield}</div></div><div className="relative"><input type="text" value={todayClay.title} onChange={(e) => onTextChange('title', e.target.value)} placeholder="例如：今天我發現了真正的自己" maxLength="20" className="w-full h-20 px-4 border-2 border-gray-300 rounded-xl text-xl focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 outline-none" autoFocus /><div className={`absolute bottom-2 right-4 text-sm font-medium ${todayClay.title.length > 18 ? 'text-red-500' : 'text-gray-400'}`}>{todayClay.title.length}/20</div></div><div className="bg-yellow-50 p-4 rounded-xl text-sm text-gray-600">💡 提示：這個標題會出現在匯出的文件中，讓你更容易回顧每天的精華。也可以選擇不填，直接完成。</div></div>)}
+                    </div>
+                    <div className="p-6 bg-white border-t-2 border-gray-100 space-y-3 shrink-0 w-full max-w-md mx-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+                        <div className="flex gap-3">
+                            {step > 0 && (<button onClick={() => setStep(step - 1)} className="px-6 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold touch-manipulation">上一步</button>)}
+                            {step < 5 ? (<button onClick={() => setStep(step + 1)} disabled={!canProceed()} className={`flex-1 py-4 rounded-xl font-bold text-lg touch-manipulation ${canProceed() ? 'bg-gradient-to-r from-orange-500 to-green-500 text-white active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>下一步</button>) : (<button onClick={onSave} disabled={!canProceed()} className={`flex-1 py-4 rounded-xl font-bold text-lg touch-manipulation ${canProceed() ? 'bg-gradient-to-r from-orange-500 to-green-500 text-white active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>✨ 完成今天的CLAY</button>)}
+                        </div>
+                    </div>
+                    {showSuccess && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style={{touchAction: 'none'}}><div className="bg-white rounded-2xl p-8 text-center celebrate mx-4"><div className="text-7xl mb-4">🎉</div><div className="text-2xl font-bold text-green-600 mb-2">完成了！</div><div className="text-gray-600">種子發芽了 🌱</div></div></div>)}
+                </div>
+            );
+        };
+
+        const HistoryScreen = ({ clayHistory, onBack, setLoading, userName }) => {
+            const [expandedDay, setExpandedDay] = useState(null);
+
+            const getTodayString = () => new Date().toISOString().slice(0, 10);
+            const formatDate = (str) => str ? str.replace(/-/g, '/') : '';
+            
+            // Use passed userName instead of prompt
+            const name = userName || 'Baby Clayer';
+
+            const exportAsMarkdown = () => {
+                setLoading(true, '📄 正在匯出 Markdown...');
+                setTimeout(() => {
+                    const count = clayHistory.length;
+                    const filename = `CLAY日記_${name}_${getTodayString()}_共${count}天.md`;
+                    let markdown = `# ${name} 的 CLAY 日記\n\n總共完成 ${count} 天\n\n---\n\n`;
+                    clayHistory.forEach(clay => { 
+                        const title = clay.title ? `# ${clay.title}\n\n**日期:** ${formatDate(clay.date)} (Day ${clay.day})\n**作者:** ${name}\n\n---\n\n` : `## Day ${clay.day} - ${formatDate(clay.date)}\n\n`;
+                        markdown += title;
+                        markdown += `### 🎯 Capture 捕捉\n${clay.capture}\n\n### 🔗 Link 連結\n${clay.link}\n\n### ✨ Aspire 渴望\n${clay.aspire}\n\n### 🤔 Ask Why 探詢\n${clay.why}\n\n### 💎 Yield 收穫\n${clay.yield}\n\n---\n\n`; 
+                    });
+                    const blob = new Blob([markdown], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+                    setLoading(false);
+                }, 500);
+            };
+
+            const exportAsPDF = () => {
+                setLoading(true, '⏳ 正在生成PDF，請稍候...');
+                setTimeout(() => {
+                    const count = clayHistory.length;
+                    const filename = `CLAY日記_${name}_${getTodayString()}_共${count}天.pdf`;
+                    const content = document.createElement('div');
+                    content.style.width = '100%'; content.style.padding = '20px'; content.style.color = '#333';
+                    let htmlContent = `<div style="font-family: sans-serif;"><div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #f97316; padding-bottom: 20px;"><h1 style="font-size: 24px; color: #333; margin-bottom: 10px;">🌱 ${name} 的 CLAY 日記</h1><p style="color: #666;">總共完成 ${count} 天的旅程</p><p style="color: #999; font-size: 12px;">匯出日期：${formatDisplayDate(getTodayString())}</p></div>`;
+                    [...clayHistory].sort((a, b) => a.day - b.day).forEach(clay => {
+                        const titleHtml = clay.title ? `<div style="background: linear-gradient(135deg, #f97316 0%, #22c55e 100%); color: white; padding: 15px; border-radius: 8px 8px 0 0; margin-bottom: 0;"><h2 style="font-size: 20px; margin: 0; font-weight: bold;">📌 ${clay.title}</h2><div style="font-size: 12px; margin-top: 5px; opacity: 0.9;">Day ${clay.day} • ${formatDate(clay.date)}</div></div>` : `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;"><strong style="font-size: 18px; color: #ea580c;">Day ${clay.day}</strong><span style="color: #666;">${formatDate(clay.date)}</span></div>`;
+                        htmlContent += `<div style="margin-bottom: 25px; page-break-inside: avoid; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">${titleHtml}<div style="padding: 15px;"><div style="margin-bottom: 8px;"><strong style="color: #ea580c;">🎯 Capture：</strong><div style="margin-top: 4px; color: #444;">${clay.capture}</div></div><div style="margin-bottom: 8px;"><strong style="color: #16a34a;">🔗 Link：</strong><div style="margin-top: 4px; color: #444;">${clay.link}</div></div><div style="margin-bottom: 8px;"><strong style="color: #9333ea;">✨ Aspire：</strong><div style="margin-top: 4px; color: #444;">${clay.aspire}</div></div><div style="margin-bottom: 8px;"><strong style="color: #2563eb;">🤔 Why：</strong><div style="margin-top: 4px; color: #444;">${clay.why}</div></div><div><strong style="color: #16a34a;">💎 Yield：</strong><div style="margin-top: 4px; color: #444;">${clay.yield}</div></div></div></div>`;
+                    });
+                    htmlContent += `</div>`; content.innerHTML = htmlContent;
+                    const opt = { margin: 10, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                    html2pdf().set(opt).from(content).save().then(() => setLoading(false));
+                }, 500);
+            };
+            
+            const exportAsText = () => {
+                setLoading(true, '📄 正在匯出文字檔...');
+                setTimeout(() => {
+                    const count = clayHistory.length;
+                    const filename = `CLAY日記_${name}_${getTodayString()}_共${count}天.txt`;
+                    let text = `${name} 的 CLAY 日記\n總共完成 ${count} 天\n` + '='.repeat(50) + '\n\n';
+                    clayHistory.forEach(clay => { 
+                        const titleText = clay.title ? `📌 ${clay.title}\nDay ${clay.day} - ${formatDate(clay.date)}\n` : `Day ${clay.day} - ${formatDate(clay.date)}\n`;
+                        text += titleText + '-'.repeat(50) + `\n[Capture] ${clay.capture}\n\n[Link] ${clay.link}\n\n[Aspire] ${clay.aspire}\n\n[Why] ${clay.why}\n\n[Yield] ${clay.yield}\n\n` + '='.repeat(50) + '\n\n'; 
+                    });
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+                    setLoading(false);
+                }, 500);
+            };
+            
+            const exportAsZip = async () => {
+                setLoading(true, '📦 正在打包ZIP檔案...');
+                setTimeout(async () => {
+                    try {
+                        const zip = new JSZip();
+                        const sorted = [...clayHistory].sort((a, b) => a.day - b.day);
+                        
+                        // 為每一天創建獨立的MD檔案
+                        sorted.forEach((clay, index) => {
+                            const date = clay.date || getTodayString();
+                            const dayNum = String(clay.day).padStart(2, '0');
+                            const titlePart = clay.title ? `_${clay.title}` : '';
+                            const filename = `${date}_Day_${dayNum}${titlePart}.md`;
+                            
+                            // 計算上一天和下一天的檔名
+                            const prevDay = index > 0 ? sorted[index - 1] : null;
+                            const nextDay = index < sorted.length - 1 ? sorted[index + 1] : null;
+                            
+                            const prevTitlePart = prevDay && prevDay.title ? `_${prevDay.title}` : '';
+                            const nextTitlePart = nextDay && nextDay.title ? `_${nextDay.title}` : '';
+                            
+                            const prevLink = prevDay ? `[[${prevDay.date}_Day_${String(prevDay.day).padStart(2, '0')}${prevTitlePart}.md]]` : '無';
+                            const nextLink = nextDay ? `[[${nextDay.date}_Day_${String(nextDay.day).padStart(2, '0')}${nextTitlePart}.md]]` : '無';
+                            
+                            // 生成MD內容
+                            let content = `---\n`;
+                            content += `day: ${clay.day}\n`;
+                            content += `date: ${date}\n`;
+                            content += `author: ${name}\n`;
+                            if (clay.title) content += `title: ${clay.title}\n`;
+                            content += `type: CLAY\n`;
+                            content += `stage: Baby Clayer\n`;
+                            content += `tags: [CLAY, reflection, day${clay.day}]\n`;
+                            content += `---\n\n`;
+                            if (clay.title) {
+                                content += `# ${clay.title}\n\n`;
+                                content += `**日期:** ${formatDate(date)} (Day ${clay.day})\n`;
+                                content += `**作者:** ${name}\n\n---\n\n`;
+                            } else {
+                                content += `# Day ${clay.day} - ${formatDate(date)}\n\n`;
+                            }
+                            content += `## 🎯 Capture 捕捉\n\n${clay.capture}\n\n`;
+                            content += `## 🔗 Link 連結\n\n${clay.link}\n\n`;
+                            content += `## ✨ Aspire 渴望\n\n${clay.aspire}\n\n`;
+                            content += `## 🤔 Ask Why 探詢\n\n${clay.why}\n\n`;
+                            content += `## 💎 Yield 收穫\n\n${clay.yield}\n\n`;
+                            content += `---\n\n`;
+                            content += `📌 **關聯:**\n`;
+                            content += `- 上一天: ${prevLink}\n`;
+                            content += `- 下一天: ${nextLink}\n\n`;
+                            content += `---\n\n`;
+                            content += `*CLAY學步車 - 從匱乏到豐盛的28天旅程*\n`;
+                            
+                            zip.file(filename, content);
+                        });
+                        
+                        // 生成ZIP並下載
+                        const blob = await zip.generateAsync({ type: 'blob' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${name}_CLAY_28天_${getTodayString()}.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        setLoading(false);
+                    } catch (error) {
+                        console.error('ZIP匯出錯誤:', error);
+                        alert('❌ ZIP匯出失敗，請稍後再試');
+                        setLoading(false);
+                    }
+                }, 500);
+            };
+            
+            return (
+                <div className="h-full w-full flex flex-col bg-white">
+                    <div className="bg-gradient-to-r from-orange-500 to-green-500 text-white p-4 flex items-center gap-3 shadow-lg shrink-0 z-10">
+                        <button onClick={onBack} className="p-1"><i data-lucide="arrow-left" width="24"></i></button>
+                        <div className="flex-1"><h2 className="text-xl font-bold">我的CLAY日記</h2><div className="text-xs opacity-90">{clayHistory.length} 篇記錄</div></div>
+                        {clayHistory.length > 0 && (<div className="relative"><button onClick={() => { const menu = document.getElementById('export-menu'); menu.classList.toggle('hidden'); }} className="p-2 bg-white/20 rounded-lg touch-manipulation"><i data-lucide="download" width="20"></i></button><div id="export-menu" className="hidden absolute right-0 top-12 bg-white rounded-lg shadow-lg border-2 border-gray-200 w-56 z-50"><button onClick={() => { exportAsMarkdown(); document.getElementById('export-menu').classList.add('hidden'); }} className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 touch-manipulation"><i data-lucide="file-text" width="16"></i><span className="text-sm">📄 匯出Markdown (單檔)</span></button><button onClick={() => { exportAsText(); document.getElementById('export-menu').classList.add('hidden'); }} className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 touch-manipulation"><i data-lucide="file" width="16"></i><span className="text-sm">📝 匯出文字檔 (TXT)</span></button><button onClick={() => { exportAsPDF(); document.getElementById('export-menu').classList.add('hidden'); }} className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 touch-manipulation"><i data-lucide="book" width="16"></i><span className="text-sm">📕 匯出PDF (可列印)</span></button><button onClick={() => { exportAsZip(); document.getElementById('export-menu').classList.add('hidden'); }} className="w-full p-3 text-left text-gray-700 hover:bg-orange-50 flex items-center gap-2 touch-manipulation"><i data-lucide="package" width="16"></i><div><div className="text-sm font-bold">📦 匯出ZIP ⭐</div><div className="text-xs text-gray-500">Notion/Obsidian</div></div></button></div></div>)}
+                    </div>
+                    <div className="flex-1 overflow-y-auto overscroll-contain p-4 max-w-md mx-auto w-full pb-safe">
+                        {clayHistory.length === 0 ? (<div className="text-center text-gray-500 mt-20"><div className="text-6xl mb-4">📖</div><div>還沒有記錄喔</div><div className="text-sm mt-2">開始寫CLAY吧！</div></div>) : ([...clayHistory].reverse().map((clay, idx) => (<div key={idx} className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm mb-4">{clay.title && (<div className="bg-gradient-to-r from-orange-400 to-green-400 text-white px-4 py-2"><div className="font-bold text-sm">📌 {clay.title}</div></div>)}<div onClick={() => setExpandedDay(expandedDay === clay.day ? null : clay.day)} className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"><div className="flex justify-between items-center mb-3"><div className="font-bold text-orange-600">Day {clay.day}</div><div className="flex items-center gap-2"><div className="text-sm text-gray-500">{formatDate(clay.date)}</div><i data-lucide={expandedDay === clay.day ? "chevron-up" : "chevron-down"} width="20"></i></div></div><div className="space-y-2 text-sm"><div><span className="font-bold text-purple-600">✨ 渴望：</span><span className="text-gray-600">{clay.aspire.slice(0, 40)}{clay.aspire.length > 40 ? '...' : ''}</span></div><div><span className="font-bold text-green-600">💎 洞察：</span><span className="text-gray-600">{clay.yield.slice(0, 40)}{clay.yield.length > 40 ? '...' : ''}</span></div></div></div>{expandedDay === clay.day && (<div className="border-t-2 border-gray-100 p-4 bg-gray-50 space-y-4 text-sm"><div><div className="font-bold text-orange-600 mb-1 flex items-center gap-2"><span>🎯</span> Capture 捕捉</div><div className="text-gray-700 bg-white p-3 rounded-lg whitespace-pre-wrap">{clay.capture}</div></div><div><div className="font-bold text-green-600 mb-1 flex items-center gap-2"><span>🔗</span> Link 連結</div><div className="text-gray-700 bg-white p-3 rounded-lg whitespace-pre-wrap">{clay.link}</div></div><div><div className="font-bold text-purple-600 mb-1 flex items-center gap-2"><span>✨</span> Aspire 渴望</div><div className="text-gray-700 bg-white p-3 rounded-lg whitespace-pre-wrap">{clay.aspire}</div></div><div><div className="font-bold text-blue-600 mb-1 flex items-center gap-2"><span>🤔</span> Ask Why 探詢</div><div className="text-gray-700 bg-white p-3 rounded-lg whitespace-pre-wrap">{clay.why}</div></div><div><div className="font-bold text-green-600 mb-1 flex items-center gap-2"><span>💎</span> Yield 收穫</div><div className="text-gray-700 bg-white p-3 rounded-lg whitespace-pre-wrap">{clay.yield}</div></div></div>)}</div>)))}
+                    </div>
+                </div>
+            );
+        };
+
+        const ProgressScreen = ({ currentDay, clayHistory, onBack }) => {
+            const progress = (clayHistory.length / 28 * 100).toFixed(0);
+            const daysLeft = Math.max(0, 28 - clayHistory.length);
+            const [selectedDayData, setSelectedDayData] = useState(null);
+            
+            const calculateStats = () => {
+                if (clayHistory.length === 0) return null;
+                let totalChars = 0, maxChars = 0, longestDay = 0;
+                clayHistory.forEach(entry => {
+                    const len = (entry.capture + entry.link + entry.aspire + entry.why + entry.yield).length;
+                    totalChars += len;
+                    if (len > maxChars) { maxChars = len; longestDay = entry.day; }
+                });
+                const avgChars = Math.round(totalChars / clayHistory.length);
+
+                const sorted = [...clayHistory].sort((a, b) => b.day - a.day);
+                let streak = 0;
+                if (sorted.length > 0) {
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const normalizeDate = (str) => { if(!str) return new Date(0); return new Date(str.replace(/-/g, '/')); };
+                    const latestDate = normalizeDate(sorted[0].date); latestDate.setHours(0,0,0,0);
+                    const diffTime = Math.abs(today - latestDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                    if (diffDays <= 1) {
+                        streak = 1;
+                        for(let i = 0; i < sorted.length - 1; i++) {
+                            const d1 = normalizeDate(sorted[i].date); const d2 = normalizeDate(sorted[i+1].date);
+                            d1.setHours(0,0,0,0); d2.setHours(0,0,0,0);
+                            const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+                            if (diff === 1) streak++; else if (diff > 1) break; 
+                        }
+                    }
+                }
+
+                return { avgChars, longestDay, streak, topAspire: extractKeywords(clayHistory.map(h => h.aspire), 3), topYield: extractKeywords(clayHistory.map(h => h.yield), 3) };
+            };
+
+            const stats = calculateStats();
+            const formatDate = (str) => str ? str.replace(/-/g, '/') : '';
+
+            return (
+                <div className="h-full w-full flex flex-col bg-white">
+                    <div className="bg-gradient-to-r from-orange-500 to-green-500 text-white p-4 flex items-center gap-3 shadow-lg shrink-0 z-10">
+                        <button onClick={onBack} className="p-1"><i data-lucide="arrow-left" width="24"></i></button>
+                        <h2 className="text-xl font-bold">我的成長軌跡</h2>
+                    </div>
+                    <div className="flex-1 overflow-y-auto overscroll-contain p-6 max-w-md mx-auto w-full space-y-6 pb-safe">
+                        <div className="bg-gradient-to-br from-orange-50 to-green-50 rounded-2xl p-6 text-center">
+                            <div className="text-7xl mb-4">{clayHistory.length <= 7 ? '🌱' : clayHistory.length <= 21 ? '🌿' : '🌳'}</div>
+                            <div className="text-4xl font-bold text-gray-800 mb-2">{clayHistory.length} / 28</div>
+                            <div className="text-gray-600">天完成</div>
+                            <div className="w-full bg-gray-200 rounded-full h-4 mt-4"><div className="bg-gradient-to-r from-orange-400 to-green-400 h-4 rounded-full" style={{width: `${progress}%`}}></div></div>
+                        </div>
+                        <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
+                            <h3 className="font-bold text-gray-800 mb-4">你現在是：</h3>
+                            <div className="text-4xl mb-3">{clayHistory.length <= 7 ? '👶' : clayHistory.length <= 21 ? '🧒' : '👦'}</div>
+                            <div className="text-2xl font-bold text-orange-600 mb-2">{clayHistory.length <= 7 ? 'Baby Clayer' : clayHistory.length <= 21 ? 'Kids Clayer' : 'Young Clayer'}</div>
+                            <div className="text-gray-600 text-sm">{clayHistory.length <= 7 ? '剛開始學習，每一天都是新的發現' : clayHistory.length <= 21 ? '開始玩CLAY了，越來越順暢' : '已經很熟練了，CLAY是生活的一部分'}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-orange-50 rounded-2xl p-4 text-center border-2 border-orange-100"><div className="text-3xl font-bold text-orange-600">{clayHistory.length}</div><div className="text-sm text-gray-600">已完成</div></div>
+                            <div className="bg-green-50 rounded-2xl p-4 text-center border-2 border-green-100"><div className="text-3xl font-bold text-green-600">{daysLeft}</div><div className="text-sm text-gray-600">還剩下</div></div>
+                        </div>
+                        <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
+                            <h3 className="font-bold text-gray-800 mb-4">28天旅程</h3>
+                            <div className="grid grid-cols-7 gap-2">
+                                {[...Array(28)].map((_, i) => {
+                                    const day = i + 1;
+                                    const done = clayHistory.some(c => c.day === day);
+                                    const isToday = day === currentDay;
+                                    return (<div key={i} 
+                                        onClick={() => done && setSelectedDayData(clayHistory.find(c => c.day === day))}
+                                        className={`aspect-square rounded-2xl flex items-center justify-center text-sm font-bold transition-all duration-300 ${done ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-md shadow-emerald-200 active:scale-90 cursor-pointer hover:scale-105' : isToday ? 'bg-white text-orange-500 border-2 border-orange-400 today-active' : 'bg-gray-100 text-gray-300 hover:bg-orange-50 hover:text-orange-300'}`}>{done ? '✓' : day}</div>);
+                                })}
+                            </div>
+                        </div>
+                        {stats && (
+                            <div className="space-y-4 animate-fade-in-up">
+                                <h3 className="font-bold text-gray-800 text-lg px-1">數據洞察</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-orange-50 rounded-2xl p-4 border-2 border-orange-100"><div className="text-sm text-orange-600 mb-1 font-bold">🔥 連續天數</div><div className="text-3xl font-bold text-gray-800">{stats.streak} <span className="text-sm font-normal text-gray-500">天</span></div></div>
+                                    <div className="bg-blue-50 rounded-2xl p-4 border-2 border-blue-100"><div className="text-sm text-blue-600 mb-1 font-bold">📝 平均字數</div><div className="text-3xl font-bold text-gray-800">{stats.avgChars} <span className="text-sm font-normal text-gray-500">字</span></div></div>
+                                </div>
+                                <div className="bg-white rounded-2xl border-2 border-gray-200 p-5">
+                                    <div className="mb-4"><div className="text-sm text-purple-600 font-bold mb-2">✨ 你最常渴望...</div><div className="flex flex-wrap gap-2">{stats.topAspire.length > 0 ? stats.topAspire.map((kw, i) => (<span key={i} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">{kw}</span>)) : <span className="text-gray-400 text-sm">持續探索中...</span>}</div></div>
+                                    <div className="border-t border-gray-100 my-3"></div>
+                                    <div><div className="text-sm text-green-600 font-bold mb-2">💎 你的洞察關鍵字...</div><div className="flex flex-wrap gap-2">{stats.topYield.length > 0 ? stats.topYield.map((kw, i) => (<span key={i} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">{kw}</span>)) : <span className="text-gray-400 text-sm">持續探索中...</span>}</div></div>
+                                </div>
+                                <div className="bg-gray-50 rounded-xl p-4 text-center border-2 border-gray-100"><span className="text-gray-500 text-sm">Day {stats.longestDay} 是你寫最多的一天，很有感觸吧？</span></div>
+                            </div>
+                        )}
+                    </div>
+
+                    {selectedDayData && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedDayData(null)}>
+                            <div className="relative bg-white w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl shadow-2xl animate-modal-in flex flex-col" onClick={e => e.stopPropagation()}>
+                                <div className="sticky top-0 bg-white/95 backdrop-blur border-b p-4 flex justify-between items-center z-10 shrink-0">
+                                    <div>
+                                        {selectedDayData.title && (<div className="font-bold text-lg text-gray-800 mb-1">📌 {selectedDayData.title}</div>)}
+                                        <h3 className="font-bold text-xl text-gray-800">Day {selectedDayData.day} <span className="text-gray-500 text-sm font-normal ml-2">{formatDate(selectedDayData.date)}</span></h3>
+                                    </div>
+                                    <button onClick={() => setSelectedDayData(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                        <i data-lucide="x" width="24" className="text-gray-500"></i>
+                                    </button>
+                                </div>
+                                <div className="p-6 space-y-6 overflow-y-auto">
+                                    <div><div className="font-bold text-orange-600 mb-2 flex items-center gap-2 text-lg"><span>🎯</span> Capture 捕捉</div><div className="text-gray-700 bg-orange-50/50 p-4 rounded-xl whitespace-pre-wrap leading-relaxed border border-orange-100">{selectedDayData.capture}</div></div>
+                                    <div><div className="font-bold text-green-600 mb-2 flex items-center gap-2 text-lg"><span>🔗</span> Link 連結</div><div className="text-gray-700 bg-green-50/50 p-4 rounded-xl whitespace-pre-wrap leading-relaxed border border-green-100">{selectedDayData.link}</div></div>
+                                    <div><div className="font-bold text-purple-600 mb-2 flex items-center gap-2 text-lg"><span>✨</span> Aspire 渴望</div><div className="text-gray-700 bg-purple-50/50 p-4 rounded-xl whitespace-pre-wrap leading-relaxed border border-purple-100">{selectedDayData.aspire}</div></div>
+                                    <div><div className="font-bold text-blue-600 mb-2 flex items-center gap-2 text-lg"><span>🤔</span> Ask Why 探詢</div><div className="text-gray-700 bg-blue-50/50 p-4 rounded-xl whitespace-pre-wrap leading-relaxed border border-blue-100">{selectedDayData.why}</div></div>
+                                    <div><div className="font-bold text-teal-600 mb-2 flex items-center gap-2 text-lg"><span>💎</span> Yield 收穫</div><div className="text-gray-700 bg-teal-50/50 p-4 rounded-xl whitespace-pre-wrap leading-relaxed border border-teal-100">{selectedDayData.yield}</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
